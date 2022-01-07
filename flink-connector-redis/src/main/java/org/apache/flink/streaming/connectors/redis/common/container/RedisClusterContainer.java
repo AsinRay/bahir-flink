@@ -19,6 +19,7 @@ package org.apache.flink.streaming.connectors.redis.common.container;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.JedisCluster;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -70,6 +71,16 @@ public class RedisClusterContainer implements RedisCommandsContainer, Closeable 
             }
             throw e;
         }
+    }
+
+    @Override
+    public void hsetWithPipeline(final String key, final String hashField, final String value, final Integer ttl) {
+       throw new NotImplementedException();
+    }
+
+    @Override
+    public void hsetWithPipeline(final String key, final String hashField, final String value) {
+        throw new NotImplementedException();
     }
 
     @Override

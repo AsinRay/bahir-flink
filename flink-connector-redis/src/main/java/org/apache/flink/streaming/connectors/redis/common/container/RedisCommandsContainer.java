@@ -44,6 +44,32 @@ public interface RedisCommandsContainer extends Serializable {
      */
     void hset(String key, String hashField, String value, Integer ttl);
 
+    /**
+     * Sets field in the hash stored at key to value, with TTL, if needed.
+     * Setting expire time to key is optional.
+     * If key does not exist, a new key holding a hash is created.
+     * If field already exists in the hash, it is overwritten.
+     *
+     * @param key           Hash name
+     * @param hashField     Hash field
+     * @param value         Hash value
+     * @param ttl           Hash expire time
+     */
+    void hsetWithPipeline(String key, String hashField, String value, Integer ttl);
+
+    /**
+     * Sets field in the hash stored at key to value, with TTL, if needed.
+     * Setting expire time to key is optional.
+     * If key does not exist, a new key holding a hash is created.
+     * If field already exists in the hash, it is overwritten.
+     *
+     * @param key           Hash name
+     * @param hashField     Hash field
+     * @param value         Hash value
+     */
+    void hsetWithPipeline(String key, String hashField, String value);
+
+
     void hincrBy(String key, String hashField, Long value, Integer ttl);
 
     /**

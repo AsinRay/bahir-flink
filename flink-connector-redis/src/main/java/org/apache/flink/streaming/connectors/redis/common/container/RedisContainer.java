@@ -40,6 +40,9 @@ public class RedisContainer implements RedisCommandsContainer, Closeable {
     private transient JedisPool jedisPool;
     private transient JedisSentinelPool jedisSentinelPool;
 
+    long batch = 0L;
+    Jedis pipelineJedis;
+
     /**
      * Use this constructor if to connect with single Redis server.
      *
@@ -67,6 +70,11 @@ public class RedisContainer implements RedisCommandsContainer, Closeable {
      */
     @Override
     public void close() throws IOException {
+        if(pipelineJedis != null){
+            pipelineJedis.close();
+            LOG.info("pipeline jedis closing...");
+            System.out.println("pipeline jedis closed.");
+        }
         if (this.jedisPool != null) {
             this.jedisPool.close();
         }
@@ -83,6 +91,8 @@ public class RedisContainer implements RedisCommandsContainer, Closeable {
         // if we can communicate with the cluster.
 
         getInstance().echo("Test");
+        pipelineJedis = getInstance();
+        LOG.info("pipeline jedis created.");
     }
 
     @Override
@@ -104,6 +114,53 @@ public class RedisContainer implements RedisCommandsContainer, Closeable {
             releaseInstance(jedis);
         }
     }
+
+    @Override
+    public void hsetWithPipeline(final String key, final String hashField, final String value) {
+
+        try {
+            pipelineJedis.pipelined().hset(key, hashField, value);
+            if( ++batch % 10000 == 0){
+                pipelineJedis.pipelined().sync();
+                LOG.info("rnd:{}" , batch/10000);
+            }
+        } catch (Exception e) {
+            if (LOG.isErrorEnabled()) {
+                LOG.error("Cannot send Redis message with command HSET to key {} and hashField {} error message {} using pipeline",
+                        key, hashField, e.getMessage());
+            }
+            throw e;
+        } /*finally {
+            releaseInstance(jedis);
+        }*/
+        // close pipelineJedis on close() method.
+    }
+
+    @Override
+    public void hsetWithPipeline(final String key, final String hashField, final String value, final Integer ttl) {
+
+        try {
+            pipelineJedis.pipelined().hset(key, hashField, value);
+            if (ttl != null) {
+                pipelineJedis.pipelined().expire(key, ttl);
+            }
+            if( ++batch % 10000 == 0){
+                pipelineJedis.pipelined().sync();
+                System.out.println("round:" + batch/1000);
+            }
+        } catch (Exception e) {
+            if (LOG.isErrorEnabled()) {
+                LOG.error("Cannot send Redis message with command HSET to key {} and hashField {} error message {} using pipeline",
+                        key, hashField, e.getMessage());
+            }
+            throw e;
+        } /*finally {
+            releaseInstance(jedis);
+        }*/
+        // close pipelineJedis on close() method.
+    }
+
+
 
     @Override
     public void hincrBy(final String key, final String hashField, final Long value, final Integer ttl) {

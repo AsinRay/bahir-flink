@@ -143,6 +143,13 @@ public class RedisSink<IN> extends RichSinkFunction<IN> {
         Optional<Integer> optAdditionalTTL = redisSinkMapper.getAdditionalTTL(input);
 
         switch (redisCommand) {
+            case PIPELINEHSET:
+                this.redisCommandsContainer.hsetWithPipeline(optAdditionalKey.orElse(this.additionalKey), key, value);
+                break;
+            case HSET:
+                this.redisCommandsContainer.hset(optAdditionalKey.orElse(this.additionalKey), key, value,
+                        optAdditionalTTL.orElse(this.additionalTTL));
+                break;
             case RPUSH:
                 this.redisCommandsContainer.rpush(key, value);
                 break;
@@ -173,10 +180,7 @@ public class RedisSink<IN> extends RichSinkFunction<IN> {
             case ZREM:
                 this.redisCommandsContainer.zrem(optAdditionalKey.orElse(this.additionalKey), key);
                 break;
-            case HSET:
-                this.redisCommandsContainer.hset(optAdditionalKey.orElse(this.additionalKey), key, value,
-                        optAdditionalTTL.orElse(this.additionalTTL));
-                break;
+
             case HINCRBY:
                 this.redisCommandsContainer.hincrBy(optAdditionalKey.orElse(this.additionalKey), key, Long.valueOf(value), optAdditionalTTL.orElse(this.additionalTTL));
                 break;

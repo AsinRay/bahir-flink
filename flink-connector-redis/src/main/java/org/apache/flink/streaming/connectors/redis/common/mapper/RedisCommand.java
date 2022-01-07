@@ -78,6 +78,7 @@ public enum RedisCommand {
      * a new key holding a hash is created. If field already exists in the hash, it is overwritten.
      */
     HSET(RedisDataType.HASH),
+    PIPELINEHSET(RedisDataType.HASH),
 
     HINCRBY(RedisDataType.HINCRBY),
 
