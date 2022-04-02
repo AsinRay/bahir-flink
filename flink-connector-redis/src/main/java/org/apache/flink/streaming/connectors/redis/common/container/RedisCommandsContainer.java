@@ -18,6 +18,7 @@ package org.apache.flink.streaming.connectors.redis.common.container;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Map;
 
 /**
  * The container for all available Redis commands.
@@ -30,6 +31,11 @@ public interface RedisCommandsContainer extends Serializable {
      * @throws Exception if the instance can not be opened properly
      */
     void open() throws Exception;
+
+    /**
+     * Set user defined configuration for extensions.
+     */
+    void setExtConf(Map<String,String> conf);
 
     /**
      * Sets field in the hash stored at key to value, with TTL, if needed.

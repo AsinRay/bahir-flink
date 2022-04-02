@@ -23,6 +23,8 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -35,6 +37,8 @@ public class RedisClusterContainer implements RedisCommandsContainer, Closeable 
     private static final Logger LOG = LoggerFactory.getLogger(RedisClusterContainer.class);
 
     private transient JedisCluster jedisCluster;
+
+    private transient HashMap<String, String> extConf;
 
     /**
      * Initialize Redis command container for Redis cluster.
@@ -55,6 +59,11 @@ public class RedisClusterContainer implements RedisCommandsContainer, Closeable 
         // if we can communicate with the cluster.
 
         jedisCluster.echo("Test");
+    }
+
+    @Override
+    public void setExtConf(Map<String, String> conf) {
+        this.extConf = (HashMap<String, String>) conf;
     }
 
     @Override

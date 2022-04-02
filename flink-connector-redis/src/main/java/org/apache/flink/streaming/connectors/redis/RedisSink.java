@@ -210,6 +210,7 @@ public class RedisSink<IN> extends RichSinkFunction<IN> {
     public void open(Configuration parameters) throws Exception {
         try {
             this.redisCommandsContainer = RedisCommandsContainerBuilder.build(this.flinkJedisConfigBase);
+            this.redisCommandsContainer.setExtConf(this.flinkJedisConfigBase.getExtConf());
             this.redisCommandsContainer.open();
         } catch (Exception e) {
             LOG.error("Redis has not been properly initialized: ", e);

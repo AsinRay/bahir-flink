@@ -20,6 +20,7 @@ import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.flink.streaming.connectors.redis.common.Util;
 
 import java.io.Serializable;
+import java.util.Map;
 
 /**
  * Base class for Flink Redis configuration.
@@ -37,7 +38,10 @@ public abstract class FlinkJedisConfigBase implements Serializable {
     protected final boolean testOnReturn;
     protected final boolean testWhileIdle;
 
-    protected FlinkJedisConfigBase(int connectionTimeout, int maxTotal, int maxIdle, int minIdle, String password, boolean testOnBorrow, boolean testOnReturn, boolean testWhileIdle) {
+    protected final Map<String,String> extConf ;
+
+
+    protected FlinkJedisConfigBase(int connectionTimeout, int maxTotal, int maxIdle, int minIdle, String password, boolean testOnBorrow, boolean testOnReturn, boolean testWhileIdle,Map<String,String> extConf) {
 
         Util.checkArgument(connectionTimeout >= 0, "connection timeout can not be negative");
         Util.checkArgument(maxTotal >= 0, "maxTotal value can not be negative");
@@ -52,6 +56,7 @@ public abstract class FlinkJedisConfigBase implements Serializable {
         this.testOnReturn = testOnReturn;
         this.testWhileIdle = testWhileIdle;
         this.password = password;
+        this.extConf = extConf;
     }
 
     /**
@@ -106,6 +111,16 @@ public abstract class FlinkJedisConfigBase implements Serializable {
      */
     public String getPassword() {
         return password;
+    }
+
+
+    /**
+     * Returns extConf.
+     *
+     * @return extConf
+     */
+    public Map<String,String> getExtConf() {
+        return extConf;
     }
 
     /**

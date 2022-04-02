@@ -24,6 +24,8 @@ import redis.clients.jedis.JedisSentinelPool;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -40,7 +42,13 @@ public class RedisContainer implements RedisCommandsContainer, Closeable {
     private transient JedisPool jedisPool;
     private transient JedisSentinelPool jedisSentinelPool;
 
-    long batch = 0L;
+    private transient HashMap<String, String> extConf;
+
+    private long batch = 0L;
+
+    private int mod = -1;
+    private int minMod = 50;
+
     Jedis pipelineJedis;
 
     /**
@@ -70,10 +78,9 @@ public class RedisContainer implements RedisCommandsContainer, Closeable {
      */
     @Override
     public void close() throws IOException {
-        if(pipelineJedis != null){
+        if (pipelineJedis != null) {
             pipelineJedis.close();
             LOG.info("pipeline jedis closing...");
-            System.out.println("pipeline jedis closed.");
         }
         if (this.jedisPool != null) {
             this.jedisPool.close();
@@ -89,10 +96,40 @@ public class RedisContainer implements RedisCommandsContainer, Closeable {
         // echo() tries to open a connection and echos back the
         // message passed as argument. Here we use it to monitor
         // if we can communicate with the cluster.
-
-        getInstance().echo("Test");
         pipelineJedis = getInstance();
-        LOG.info("pipeline jedis created.");
+        pipelineJedis.echo("Test");
+        LOG.info("jedis instance created.");
+    }
+
+
+    @Override
+    public void setExtConf(Map<String, String> conf) {
+        this.extConf = (HashMap<String, String>) conf;
+    }
+
+    /**
+     * Initialize jedis pipeline sync count number.
+     *
+     * @return
+     */
+    private int getMod() {
+        if(extConf == null){
+            return minMod;
+        }
+        String modVal = extConf.get("redis.pipeline.sync.count");
+        if (modVal == null) {
+            mod = minMod;
+            return mod;
+        }
+        try {
+            int mv = Integer.valueOf(modVal);
+            mod = mv > minMod ? mv : minMod;
+        } catch (Exception e) {
+            LOG.warn("Exception");
+            mod = minMod;
+        }
+        LOG.info("Set pipeline sync count to {}.", mod);
+        return mod;
     }
 
     @Override
@@ -107,7 +144,7 @@ public class RedisContainer implements RedisCommandsContainer, Closeable {
         } catch (Exception e) {
             if (LOG.isErrorEnabled()) {
                 LOG.error("Cannot send Redis message with command HSET to key {} and hashField {} error message {}",
-                    key, hashField, e.getMessage());
+                        key, hashField, e.getMessage());
             }
             throw e;
         } finally {
@@ -117,36 +154,22 @@ public class RedisContainer implements RedisCommandsContainer, Closeable {
 
     @Override
     public void hsetWithPipeline(final String key, final String hashField, final String value) {
-
-        try {
-            pipelineJedis.pipelined().hset(key, hashField, value);
-            if( ++batch % 10000 == 0){
-                pipelineJedis.pipelined().sync();
-                LOG.info("rnd:{}" , batch/10000);
-            }
-        } catch (Exception e) {
-            if (LOG.isErrorEnabled()) {
-                LOG.error("Cannot send Redis message with command HSET to key {} and hashField {} error message {} using pipeline",
-                        key, hashField, e.getMessage());
-            }
-            throw e;
-        } /*finally {
-            releaseInstance(jedis);
-        }*/
-        // close pipelineJedis on close() method.
+        hsetWithPipeline(key,hashField,value,null);
     }
 
     @Override
     public void hsetWithPipeline(final String key, final String hashField, final String value, final Integer ttl) {
-
+        // if(mod != -1) init with -1.
+        if (mod < minMod)
+            mod = getMod();
         try {
             pipelineJedis.pipelined().hset(key, hashField, value);
             if (ttl != null) {
                 pipelineJedis.pipelined().expire(key, ttl);
             }
-            if( ++batch % 10000 == 0){
+            if (++batch % mod == 0) {
                 pipelineJedis.pipelined().sync();
-                System.out.println("round:" + batch/1000);
+                LOG.debug("rnd:{}, mod:{}", batch / mod, mod);
             }
         } catch (Exception e) {
             if (LOG.isErrorEnabled()) {
@@ -159,7 +182,6 @@ public class RedisContainer implements RedisCommandsContainer, Closeable {
         }*/
         // close pipelineJedis on close() method.
     }
-
 
 
     @Override
@@ -191,7 +213,7 @@ public class RedisContainer implements RedisCommandsContainer, Closeable {
         } catch (Exception e) {
             if (LOG.isErrorEnabled()) {
                 LOG.error("Cannot send Redis message with command RPUSH to list {} error message {}",
-                    listName, e.getMessage());
+                        listName, e.getMessage());
             }
             throw e;
         } finally {
@@ -208,7 +230,7 @@ public class RedisContainer implements RedisCommandsContainer, Closeable {
         } catch (Exception e) {
             if (LOG.isErrorEnabled()) {
                 LOG.error("Cannot send Redis message with command LUSH to list {} error message {}",
-                    listName, e.getMessage());
+                        listName, e.getMessage());
             }
             throw e;
         } finally {
@@ -225,7 +247,7 @@ public class RedisContainer implements RedisCommandsContainer, Closeable {
         } catch (Exception e) {
             if (LOG.isErrorEnabled()) {
                 LOG.error("Cannot send Redis message with command RPUSH to set {} error message {}",
-                    setName, e.getMessage());
+                        setName, e.getMessage());
             }
             throw e;
         } finally {
@@ -242,7 +264,7 @@ public class RedisContainer implements RedisCommandsContainer, Closeable {
         } catch (Exception e) {
             if (LOG.isErrorEnabled()) {
                 LOG.error("Cannot send Redis message with command PUBLISH to channel {} error message {}",
-                    channelName, e.getMessage());
+                        channelName, e.getMessage());
             }
             throw e;
         } finally {
@@ -259,7 +281,7 @@ public class RedisContainer implements RedisCommandsContainer, Closeable {
         } catch (Exception e) {
             if (LOG.isErrorEnabled()) {
                 LOG.error("Cannot send Redis message with command SET to key {} error message {}",
-                    key, e.getMessage());
+                        key, e.getMessage());
             }
             throw e;
         } finally {
@@ -293,7 +315,7 @@ public class RedisContainer implements RedisCommandsContainer, Closeable {
         } catch (Exception e) {
             if (LOG.isErrorEnabled()) {
                 LOG.error("Cannot send Redis message with command PFADD to key {} error message {}",
-                    key, e.getMessage());
+                        key, e.getMessage());
             }
             throw e;
         } finally {
@@ -310,7 +332,7 @@ public class RedisContainer implements RedisCommandsContainer, Closeable {
         } catch (Exception e) {
             if (LOG.isErrorEnabled()) {
                 LOG.error("Cannot send Redis message with command ZADD to set {} error message {}",
-                    key, e.getMessage());
+                        key, e.getMessage());
             }
             throw e;
         } finally {

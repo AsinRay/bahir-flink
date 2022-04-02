@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Protocol;
 
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -62,8 +63,9 @@ public class FlinkJedisSentinelConfig extends FlinkJedisConfigBase {
                                      int connectionTimeout, int soTimeout,
                                      String password, int database,
                                      int maxTotal, int maxIdle, int minIdle,
-                                     boolean testOnBorrow, boolean testOnReturn, boolean testWhileIdle) {
-        super(connectionTimeout, maxTotal, maxIdle, minIdle, password, testOnBorrow, testOnReturn, testWhileIdle);
+                                     boolean testOnBorrow, boolean testOnReturn,
+                                     boolean testWhileIdle,Map<String,String> extConf) {
+        super(connectionTimeout, maxTotal, maxIdle, minIdle, password, testOnBorrow, testOnReturn, testWhileIdle,extConf);
 
         Objects.requireNonNull(masterName, "Master name should be presented");
         Objects.requireNonNull(sentinels, "Sentinels information should be presented");
@@ -128,6 +130,8 @@ public class FlinkJedisSentinelConfig extends FlinkJedisConfigBase {
         private boolean testOnReturn = GenericObjectPoolConfig.DEFAULT_TEST_ON_RETURN;
         private boolean testWhileIdle = GenericObjectPoolConfig.DEFAULT_TEST_WHILE_IDLE;
 
+        // extend configuration
+        private Map<String,String> extConf;
         /**
          * Sets master name of the replica set.
          *
@@ -191,6 +195,16 @@ public class FlinkJedisSentinelConfig extends FlinkJedisConfigBase {
          */
         public Builder setDatabase(int database) {
             this.database = database;
+            return this;
+        }
+
+        /**
+         * Sets extended configuration.
+         * @param extConf extended configuration
+         * @return Builder itself
+         */
+        public Builder setExConf(Map<String,String> extConf) {
+            this.extConf = extConf;
             return this;
         }
 
@@ -276,7 +290,7 @@ public class FlinkJedisSentinelConfig extends FlinkJedisConfigBase {
          */
         public FlinkJedisSentinelConfig build(){
             return new FlinkJedisSentinelConfig(masterName, sentinels, connectionTimeout, soTimeout,
-                password, database, maxTotal, maxIdle, minIdle, testOnBorrow, testOnReturn, testWhileIdle);
+                password, database, maxTotal, maxIdle, minIdle, testOnBorrow, testOnReturn, testWhileIdle,extConf);
         }
     }
 

@@ -24,6 +24,7 @@ import redis.clients.jedis.Protocol;
 
 import java.net.InetSocketAddress;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -55,8 +56,9 @@ public class FlinkJedisClusterConfig extends FlinkJedisConfigBase {
      */
     private FlinkJedisClusterConfig(Set<InetSocketAddress> nodes, int connectionTimeout, int maxRedirections,
                                     int maxTotal, int maxIdle, int minIdle, String password,
-                                    boolean testOnBorrow, boolean testOnReturn, boolean testWhileIdle) {
-        super(connectionTimeout, maxTotal, maxIdle, minIdle, password, testOnBorrow, testOnReturn, testWhileIdle);
+                                    boolean testOnBorrow, boolean testOnReturn,
+                                    boolean testWhileIdle,Map<String,String> extConf) {
+        super(connectionTimeout, maxTotal, maxIdle, minIdle, password, testOnBorrow, testOnReturn, testWhileIdle,extConf);
 
         Objects.requireNonNull(nodes, "Node information should be presented");
         Util.checkArgument(!nodes.isEmpty(), "Redis cluster hosts should not be empty");
@@ -103,6 +105,9 @@ public class FlinkJedisClusterConfig extends FlinkJedisConfigBase {
         private boolean testOnReturn = GenericObjectPoolConfig.DEFAULT_TEST_ON_RETURN;
         private boolean testWhileIdle = GenericObjectPoolConfig.DEFAULT_TEST_WHILE_IDLE;
         private String password;
+
+        // extend configuration
+        private Map<String,String> extConf;
 
         /**
          * Sets list of node.
@@ -186,6 +191,16 @@ public class FlinkJedisClusterConfig extends FlinkJedisConfigBase {
         }
 
         /**
+         * Sets extended configuration.
+         * @param extConf extended configuration
+         * @return Builder itself
+         */
+        public Builder setExConf(Map<String,String> extConf) {
+            this.extConf = extConf;
+            return this;
+        }
+
+        /**
          * Sets value for the {@code testOnBorrow} configuration attribute
          * for pools to be created with this configuration instance.
          *
@@ -230,7 +245,7 @@ public class FlinkJedisClusterConfig extends FlinkJedisConfigBase {
          * @return JedisClusterConfig
          */
         public FlinkJedisClusterConfig build() {
-            return new FlinkJedisClusterConfig(nodes, timeout, maxRedirections, maxTotal, maxIdle, minIdle, password, testOnBorrow, testOnReturn, testWhileIdle);
+            return new FlinkJedisClusterConfig(nodes, timeout, maxRedirections, maxTotal, maxIdle, minIdle, password, testOnBorrow, testOnReturn, testWhileIdle,extConf);
         }
     }
 
