@@ -34,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -104,6 +105,7 @@ public class RedisSink<IN> extends RichSinkFunction<IN> {
 
     private FlinkJedisConfigBase flinkJedisConfigBase;
     private RedisCommandsContainer redisCommandsContainer;
+    private Map<String,Object> containerConf;
 
     /**
      * Creates a new {@link RedisSink} that connects to the Redis server.
@@ -126,6 +128,22 @@ public class RedisSink<IN> extends RichSinkFunction<IN> {
         this.additionalKey = redisCommandDescription.getAdditionalKey();
     }
 
+    public RedisSink(FlinkJedisConfigBase flinkJedisConfigBase, RedisMapper<IN> redisSinkMapper, Map<String,Object> containerConf) {
+        Objects.requireNonNull(flinkJedisConfigBase, "Redis connection pool config should not be null");
+        Objects.requireNonNull(redisSinkMapper, "Redis Mapper can not be null");
+        Objects.requireNonNull(redisSinkMapper.getCommandDescription(), "Redis Mapper data type description can not be null");
+
+        this.flinkJedisConfigBase = flinkJedisConfigBase;
+
+        this.redisSinkMapper = redisSinkMapper;
+        RedisCommandDescription redisCommandDescription = redisSinkMapper.getCommandDescription();
+
+        this.redisCommand = redisCommandDescription.getCommand();
+        this.additionalTTL = redisCommandDescription.getAdditionalTTL();
+        this.additionalKey = redisCommandDescription.getAdditionalKey();
+        this.containerConf = containerConf;
+    }
+
     /**
      * Called when new data arrives to the sink, and forwards it to Redis channel.
      * Depending on the specified Redis data type (see {@link RedisDataType}),
@@ -143,8 +161,12 @@ public class RedisSink<IN> extends RichSinkFunction<IN> {
         Optional<Integer> optAdditionalTTL = redisSinkMapper.getAdditionalTTL(input);
 
         switch (redisCommand) {
+            case PIPELINEHSETEx:
+                this.redisCommandsContainer.pipelinedHsetEx(optAdditionalKey.orElse(this.additionalKey), key, value,
+                        optAdditionalTTL.orElse(this.additionalTTL));
+                break;
             case PIPELINEHSET:
-                this.redisCommandsContainer.hsetWithPipeline(optAdditionalKey.orElse(this.additionalKey), key, value);
+                this.redisCommandsContainer.pipelinedHset(optAdditionalKey.orElse(this.additionalKey), key, value);
                 break;
             case HSET:
                 this.redisCommandsContainer.hset(optAdditionalKey.orElse(this.additionalKey), key, value,
@@ -210,7 +232,7 @@ public class RedisSink<IN> extends RichSinkFunction<IN> {
     public void open(Configuration parameters) throws Exception {
         try {
             this.redisCommandsContainer = RedisCommandsContainerBuilder.build(this.flinkJedisConfigBase);
-            this.redisCommandsContainer.setExtConf(this.flinkJedisConfigBase.getExtConf());
+            this.redisCommandsContainer.setConf(this.containerConf);
             this.redisCommandsContainer.open();
         } catch (Exception e) {
             LOG.error("Redis has not been properly initialized: ", e);

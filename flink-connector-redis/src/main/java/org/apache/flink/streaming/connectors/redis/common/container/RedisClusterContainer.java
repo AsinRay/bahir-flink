@@ -23,7 +23,6 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -38,7 +37,7 @@ public class RedisClusterContainer implements RedisCommandsContainer, Closeable 
 
     private transient JedisCluster jedisCluster;
 
-    private transient HashMap<String, String> extConf;
+    private transient Map<String, Object> conf;
 
     /**
      * Initialize Redis command container for Redis cluster.
@@ -62,8 +61,13 @@ public class RedisClusterContainer implements RedisCommandsContainer, Closeable 
     }
 
     @Override
-    public void setExtConf(Map<String, String> conf) {
-        this.extConf = (HashMap<String, String>) conf;
+    public void setConf(Map<String, Object> conf) {
+        this.conf = conf;
+    }
+
+    @Override
+    public Map<String,Object> getConf() {
+        return this.conf;
     }
 
     @Override
@@ -83,12 +87,12 @@ public class RedisClusterContainer implements RedisCommandsContainer, Closeable 
     }
 
     @Override
-    public void hsetWithPipeline(final String key, final String hashField, final String value, final Integer ttl) {
+    public void pipelinedHsetEx(final String key, final String hashField, final String value, final Integer ttl) {
        throw new NotImplementedException();
     }
 
     @Override
-    public void hsetWithPipeline(final String key, final String hashField, final String value) {
+    public void pipelinedHset(final String key, final String hashField, final String value) {
         throw new NotImplementedException();
     }
 

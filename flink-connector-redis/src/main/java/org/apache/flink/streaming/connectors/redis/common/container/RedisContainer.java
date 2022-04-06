@@ -24,7 +24,6 @@ import redis.clients.jedis.JedisSentinelPool;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -42,7 +41,7 @@ public class RedisContainer implements RedisCommandsContainer, Closeable {
     private transient JedisPool jedisPool;
     private transient JedisSentinelPool jedisSentinelPool;
 
-    private transient HashMap<String, String> extConf;
+    private transient Map<String, Object> conf;
 
     private long batch = 0L;
 
@@ -101,10 +100,14 @@ public class RedisContainer implements RedisCommandsContainer, Closeable {
         LOG.info("jedis instance created.");
     }
 
+    @Override
+    public void setConf(Map<String, Object> conf) {
+        this.conf = conf;
+    }
 
     @Override
-    public void setExtConf(Map<String, String> conf) {
-        this.extConf = (HashMap<String, String>) conf;
+    public Map<String,Object> getConf() {
+        return this.conf;
     }
 
     /**
@@ -113,16 +116,17 @@ public class RedisContainer implements RedisCommandsContainer, Closeable {
      * @return
      */
     private int getMod() {
-        if(extConf == null){
+        if(conf == null){
             return minMod;
         }
-        String modVal = extConf.get("redis.pipeline.sync.count");
-        if (modVal == null) {
+        Object modVal = conf.get("redis.pipeline.sync.count");
+
+        if (modVal == null || !(modVal instanceof Integer)) {
             mod = minMod;
             return mod;
         }
         try {
-            int mv = Integer.valueOf(modVal);
+            int mv = (Integer) modVal;
             mod = mv > minMod ? mv : minMod;
         } catch (Exception e) {
             LOG.warn("Exception");
@@ -153,12 +157,13 @@ public class RedisContainer implements RedisCommandsContainer, Closeable {
     }
 
     @Override
-    public void hsetWithPipeline(final String key, final String hashField, final String value) {
-        hsetWithPipeline(key,hashField,value,null);
+    public void pipelinedHset(final String key, final String hashField, final String value) {
+        pipelinedHsetEx(key,hashField,value,null);
     }
 
+
     @Override
-    public void hsetWithPipeline(final String key, final String hashField, final String value, final Integer ttl) {
+    public void pipelinedHsetEx(final String key, final String hashField, final String value, final Integer ttl) {
         // if(mod != -1) init with -1.
         if (mod < minMod)
             mod = getMod();

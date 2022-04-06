@@ -35,7 +35,12 @@ public interface RedisCommandsContainer extends Serializable {
     /**
      * Set user defined configuration for extensions.
      */
-    void setExtConf(Map<String,String> conf);
+    void setConf(Map<String,Object> conf);
+
+    /**
+     * Get user defined configuration for extensions.
+     */
+    Map<String,Object> getConf();
 
     /**
      * Sets field in the hash stored at key to value, with TTL, if needed.
@@ -61,7 +66,7 @@ public interface RedisCommandsContainer extends Serializable {
      * @param value         Hash value
      * @param ttl           Hash expire time
      */
-    void hsetWithPipeline(String key, String hashField, String value, Integer ttl);
+    void pipelinedHsetEx(String key, String hashField, String value, Integer ttl);
 
     /**
      * Sets field in the hash stored at key to value, with TTL, if needed.
@@ -73,7 +78,7 @@ public interface RedisCommandsContainer extends Serializable {
      * @param hashField     Hash field
      * @param value         Hash value
      */
-    void hsetWithPipeline(String key, String hashField, String value);
+    void pipelinedHset(String key, String hashField, String value);
 
 
     void hincrBy(String key, String hashField, Long value, Integer ttl);

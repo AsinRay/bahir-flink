@@ -79,6 +79,7 @@ public enum RedisCommand {
      */
     HSET(RedisDataType.HASH),
     PIPELINEHSET(RedisDataType.HASH),
+    PIPELINEHSETEx(RedisDataType.HASH),
 
     HINCRBY(RedisDataType.HINCRBY),
 
